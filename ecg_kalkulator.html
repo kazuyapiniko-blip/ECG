@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECG — Kalkulator Regulasi</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#141312;
+  --panel:#1e1c1a;
+  --panel2:#262320;
+  --border:#3a352f;
+  --text:#eee7d8;
+  --muted:#948b7a;
+  --accent:#ff7a1a;
+  --accent2:#f4c430;
+  --ok:#5cb87a;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+body{
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255,122,26,0.07), transparent 40%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.012) 0 2px, transparent 2px 6px),
+    var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  padding-bottom:130px;
+  min-height:100vh;
+}
+
+/* ===== HEADER ===== */
+.masthead{
+  padding:28px 18px 20px;
+  border-bottom:3px solid var(--accent);
+  position:relative;
+  background:
+    linear-gradient(180deg, rgba(255,122,26,0.10), transparent 70%);
+}
+.masthead::after{
+  content:"";
+  position:absolute; left:0; right:0; bottom:-3px; height:3px;
+  background: repeating-linear-gradient(90deg, var(--accent2) 0 14px, var(--accent) 14px 28px);
+}
+.tag{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  letter-spacing:.18em;
+  color:var(--accent2);
+  text-transform:uppercase;
+}
+h1{
+  font-family:'Oswald',sans-serif;
+  font-weight:700;
+  font-size:30px;
+  letter-spacing:.01em;
+  text-transform:uppercase;
+  margin-top:6px;
+  line-height:1.05;
+}
+h1 span{color:var(--accent);}
+.sub{
+  font-size:12.5px;
+  color:var(--muted);
+  margin-top:8px;
+  line-height:1.5;
+}
+.datebadge{
+  display:inline-block;
+  margin-top:12px;
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  color:var(--bg);
+  background:var(--accent2);
+  padding:3px 9px;
+  border-radius:2px;
+  font-weight:500;
+}
+
+/* ===== GROUP TITLES ===== */
+.group-title{
+  font-family:'Oswald',sans-serif;
+  font-size:13px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  padding:22px 18px 8px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.group-title::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:linear-gradient(90deg, var(--border), transparent);
+}
+
+/* ===== ACCORDION ===== */
+details.section{
+  margin:8px 14px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:6px;
+  overflow:hidden;
+}
+details.section[open] summary{
+  border-bottom:1px solid var(--border);
+}
+summary{
+  list-style:none;
+  cursor:pointer;
+  padding:13px 14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-family:'Oswald',sans-serif;
+  font-size:14px;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:var(--text);
+}
+summary::-webkit-details-marker{display:none;}
+summary .chev{
+  font-family:'DM Mono',monospace;
+  color:var(--accent2);
+  font-size:13px;
+  transition:transform .2s ease;
+}
+details[open] summary .chev{transform:rotate(45deg);}
+summary .sub-count{
+  font-family:'DM Mono',monospace;
+  font-size:10.5px;
+  color:var(--muted);
+  text-transform:none;
+  margin-right:auto;
+  margin-left:10px;
+}
+
+.rows{padding:6px 4px;}
+
+.row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border-bottom:1px dashed var(--border);
+}
+.row:last-child{border-bottom:none;}
+.row label{
+  flex:1;
+  font-size:13.5px;
+  color:var(--text);
+}
+.row .price{
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  color:var(--accent2);
+  min-width:64px;
+  text-align:right;
+}
+.row.disabled label, .row.disabled .price{color:var(--muted); opacity:.5;}
+
+input[type="checkbox"], input[type="radio"]{
+  appearance:none;
+  width:18px; height:18px;
+  border:1.5px solid var(--border);
+  background:var(--panel2);
+  flex-shrink:0;
+  cursor:pointer;
+  position:relative;
+}
+input[type="checkbox"]{border-radius:4px;}
+input[type="radio"]{border-radius:50%;}
+input[type="checkbox"]:checked, input[type="radio"]:checked{
+  border-color:var(--accent);
+  background:var(--accent);
+}
+input[type="checkbox"]:checked::after{
+  content:"✓";
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; color:var(--bg); font-weight:700;
+}
+input[type="radio"]:checked::after{
+  content:"";
+  position:absolute; inset:5px;
+  border-radius:50%;
+  background:var(--bg);
+}
+input:disabled{opacity:.35; cursor:not-allowed;}
+
+input[type="number"]{
+  width:56px;
+  background:var(--panel2);
+  border:1.5px solid var(--border);
+  border-radius:4px;
+  color:var(--text);
+  font-family:'DM Mono',monospace;
+  font-size:13px;
+  text-align:center;
+  padding:5px 2px;
+}
+input[type="number"]:focus, input[type="checkbox"]:focus-visible, input[type="radio"]:focus-visible{
+  outline:2px solid var(--accent2);
+  outline-offset:1px;
+}
+
+.qty-row .price{min-width:auto; margin-left:auto; padding-left:8px;}
+.qty-row label{flex:1;}
+
+.stepper{
+  display:flex;
+  align-items:center;
+  gap:0;
+  border:1.5px solid var(--border);
+  border-radius:5px;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.step-btn{
+  width:30px; height:28px;
+  background:var(--panel2);
+  border:none;
+  color:var(--accent2);
+  font-family:'DM Mono',monospace;
+  font-size:16px;
+  line-height:1;
+  cursor:pointer;
+}
+.step-btn:hover{background:var(--accent); color:var(--bg);}
+.step-btn:active{background:var(--accent2);}
+.step-value{
+  min-width:28px;
+  text-align:center;
+  font-family:'DM Mono',monospace;
+  font-size:13px;
+  color:var(--text);
+  background:var(--panel);
+  padding:0 4px;
+  height:28px;
+  line-height:28px;
+  border-left:1.5px solid var(--border);
+  border-right:1.5px solid var(--border);
+}
+
+/* ===== UPLOAD GAMBAR ===== */
+.upload-wrap{padding:14px;}
+.upload-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:9px 14px;
+  border:1.5px dashed var(--accent);
+  border-radius:6px;
+  color:var(--accent2);
+  font-family:'DM Mono',monospace;
+  font-size:12.5px;
+  letter-spacing:.03em;
+  cursor:pointer;
+  background:rgba(255,122,26,0.06);
+}
+.upload-btn:hover{background:rgba(255,122,26,0.14);}
+.thumb-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+.thumb-item{
+  position:relative;
+  width:66px; height:66px;
+  border-radius:6px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  flex-shrink:0;
+}
+.thumb-item img{
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+}
+.thumb-remove{
+  position:absolute;
+  top:2px; right:2px;
+  width:18px; height:18px;
+  border-radius:50%;
+  background:rgba(20,19,18,0.85);
+  border:1px solid var(--border);
+  color:#ff6a6a;
+  font-size:12px;
+  line-height:16px;
+  text-align:center;
+  cursor:pointer;
+}
+.thumb-count{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  margin-top:8px;
+}
+
+/* ===== SEND / STATUS ===== */
+.send-btn{
+  font-family:'Oswald',sans-serif;
+  font-size:12px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--bg);
+  background:var(--accent);
+  border:none;
+  border-radius:4px;
+  padding:10px 14px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.send-btn:hover{background:var(--accent2);}
+.send-btn:disabled{opacity:.5; cursor:not-allowed;}
+.send-status{
+  font-family:'DM Mono',monospace;
+  font-size:10.5px;
+  padding:0 18px 10px;
+  text-align:right;
+}
+.send-status.ok{color:var(--ok);}
+.send-status.err{color:#ff6a6a;}
+.btn-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+/* ===== FIELD TEXT (NAMA / INSTANSI) ===== */
+.field-row{margin-bottom:14px;}
+.field-row:last-child{margin-bottom:0;}
+.field-row label{
+  display:block;
+  font-family:'DM Mono',monospace;
+  font-size:10.5px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.field-row input[type="text"]{
+  width:100%;
+  background:var(--panel2);
+  border:1.5px solid var(--border);
+  border-radius:5px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13.5px;
+  padding:9px 11px;
+}
+.field-row input[type="text"]::placeholder{color:var(--muted);}
+.field-row input[type="text"]:focus{outline:1.5px solid var(--accent2); outline-offset:0;}
+.field-row textarea{
+  width:100%;
+  min-height:70px;
+  resize:vertical;
+  background:var(--panel2);
+  border:1.5px solid var(--border);
+  border-radius:5px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13.5px;
+  padding:9px 11px;
+  line-height:1.5;
+}
+.field-row textarea::placeholder{color:var(--muted);}
+.field-row textarea:focus{outline:1.5px solid var(--accent2); outline-offset:0;}
+.field-row textarea{
+  width:100%;
+  background:var(--panel2);
+  border:1.5px solid var(--border);
+  border-radius:5px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:13.5px;
+  padding:9px 11px;
+  resize:vertical;
+  min-height:60px;
+}
+.field-row textarea::placeholder{color:var(--muted);}
+.field-row textarea:focus{outline:1.5px solid var(--accent2); outline-offset:0;}
+
+.note{
+  font-size:11.5px;
+  color:var(--muted);
+  padding:10px 14px 12px;
+  border-top:1px dashed var(--border);
+  line-height:1.5;
+}
+.note b{color:var(--accent2);}
+
+/* ===== STICKY RECEIPT FOOTER ===== */
+.receipt{
+  position:fixed;
+  left:0; right:0; bottom:0;
+  background:var(--panel);
+  border-top:2px solid var(--border);
+  z-index:20;
+}
+.receipt::before{
+  content:"";
+  position:absolute; top:-7px; left:0; right:0; height:7px;
+  background:
+    linear-gradient(135deg, var(--bg) 50%, transparent 50%) 0 0/10px 10px repeat-x,
+    linear-gradient(-135deg, var(--bg) 50%, transparent 50%) 0 0/10px 10px repeat-x;
+  background-color:var(--panel);
+}
+.receipt-inner{
+  padding:12px 18px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.receipt-label{
+  font-family:'Oswald',sans-serif;
+  font-size:12px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.receipt-sub{
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  color:var(--muted);
+  margin-top:2px;
+}
+.receipt-total{
+  font-family:'DM Mono',monospace;
+  font-size:26px;
+  font-weight:500;
+  color:var(--ok);
+  white-space:nowrap;
+}
+.receipt-total .cur{font-size:15px; color:var(--accent2); margin-right:3px;}
+.reset-btn{
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  background:none;
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:6px 9px;
+  cursor:pointer;
+}
+.reset-btn:hover{color:var(--accent); border-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="tag">Elite Custom Garage</div>
+  <h1>Kalkulator <span>E.C.G</span></h1>
+  <div class="sub">Regulasi modifikasi &amp; regulasi bengkel kota. Centang / pilih item untuk menghitung total tagihan customer secara otomatis.</div>
+  <div class="datebadge">Berlaku sejak 10 Agustus 2026 · harga dapat berubah sewaktu-waktu</div>
+</div>
+
+<div class="group-title">Data Customer</div>
+
+<details class="section" open>
+  <summary>Nama &amp; Instansi <span class="sub-count">nama wajib</span><span class="chev">+</span></summary>
+  <div class="upload-wrap">
+    <div class="field-row">
+      <label for="custName">Nama Customer *</label>
+      <input type="text" id="custName" placeholder="cth. John Doe" required>
+    </div>
+    <div class="field-row">
+      <label for="custInstansi">Instansi (opsional)</label>
+      <input type="text" id="custInstansi" placeholder="cth. LSPD / Pribadi">
+    </div>
+  </div>
+</details>
+
+<div class="group-title">Regulasi Modifikasi</div>
+
+<details class="section" open>
+  <summary>Identitas Customer <span class="sub-count">wajib KTP / SIM</span><span class="chev">+</span></summary>
+  <div class="rows">
+    <div class="row">
+      <input type="checkbox" class="calc-item" data-price="1500" id="identitas-tanpa">
+      <label for="identitas-tanpa">Tanpa KTP/SIM</label>
+      <span class="price">$ 1.500</span>
+    </div>
+  </div>
+  <div class="note">Setiap melakukan modifikasi, customer <b>wajib</b> menunjukkan KTP atau SIM. Jika tidak ada, dikenakan biaya tambahan per identitas yang tidak bisa ditunjukkan.</div>
+</details>
+
+<details class="section">
+  <summary>Paint <span class="chev">+</span></summary>
+  <div class="rows" id="sec-paint"></div>
+</details>
+
+<details class="section">
+  <summary>Appearance — Body Part <span class="chev">+</span></summary>
+  <div class="rows" id="sec-bodypart"></div>
+</details>
+
+<details class="section">
+  <summary>Appearance — Window Tint <span class="chev">+</span></summary>
+  <div class="rows" id="sec-tint"></div>
+</details>
+
+<details class="section">
+  <summary>Appearance — Other <span class="chev">+</span></summary>
+  <div class="rows" id="sec-other"></div>
+</details>
+
+<details class="section">
+  <summary>Interior <span class="chev">+</span></summary>
+  <div class="rows" id="sec-interior"></div>
+</details>
+
+<details class="section">
+  <summary>Neon &amp; Xenon <span class="chev">+</span></summary>
+  <div class="rows" id="sec-neon"></div>
+</details>
+
+<details class="section">
+  <summary>Wheel <span class="chev">+</span></summary>
+  <div class="rows" id="sec-wheel"></div>
+</details>
+
+<details class="section">
+  <summary>Performance <span class="chev">+</span></summary>
+  <div class="rows" id="sec-perf-items"></div>
+  <div class="rows" id="sec-perf-package"></div>
+  <div class="rows" id="sec-perf-nos"></div>
+  <div class="rows" id="sec-perf-susp"></div>
+  <div class="note">Pilih <b>satuan per part</b>, atau gunakan <b>Paket Rata Kanan</b> (menggantikan pembelian satuan Engine/Brakes/Transmission/Armour/Turbo).</div>
+</details>
+
+<div class="group-title">Regulasi Bengkel Kota</div>
+
+<details class="section">
+  <summary>Servis Bengkel <span class="sub-count">cash</span><span class="chev">+</span></summary>
+  <div class="rows" id="sec-servis"></div>
+</details>
+
+<details class="section">
+  <summary>Part &amp; Alat <span class="sub-count">cash</span><span class="chev">+</span></summary>
+  <div class="rows" id="sec-part"></div>
+</details>
+
+<details class="section">
+  <summary>Servis Luar Bengkel <span class="sub-count">cash</span><span class="chev">+</span></summary>
+  <div class="rows" id="sec-luar"></div>
+</details>
+
+<details class="section">
+  <summary>Towing / Derek <span class="sub-count">billing</span><span class="chev">+</span></summary>
+  <div class="rows" id="sec-towing"></div>
+</details>
+
+<details class="section">
+  <summary>Jasa Beli Jerry Can <span class="sub-count">cash</span><span class="chev">+</span></summary>
+  <div class="rows" id="sec-jerry"></div>
+</details>
+
+<details class="section">
+  <summary>Cek Rata Kanan <span class="chev">+</span></summary>
+  <div class="rows" id="sec-lain"></div>
+</details>
+
+<div class="group-title">Bukti / Lampiran</div>
+
+<details class="section" open>
+  <summary>Upload Gambar <span class="sub-count">bebas jumlahnya</span><span class="chev">+</span></summary>
+  <div class="upload-wrap">
+    <div class="field-row">
+      <label for="custNote">Catatan Tambahan (opsional)</label>
+      <textarea id="custNote" placeholder="cth. Cosmetic, Modif Racing, dll."></textarea>
+    </div>
+    <label class="upload-btn" for="fileInput">+ Tambah Gambar</label>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+    <div class="thumb-grid" id="thumbGrid"></div>
+    <div class="thumb-count" id="thumbCount">Belum ada gambar dipilih</div>
+  </div>
+  <div class="note">Gambar akan dikirim bersama rincian nota ke Discord saat tombol <b>Kirim</b> ditekan. Ukuran per file mengikuti limit Discord (umumnya maks. 8MB/file, 10 file/pesan).</div>
+</details>
+
+<div style="height:6px"></div>
+
+<div class="receipt">
+  <div class="send-status" id="sendStatus"></div>
+  <div class="receipt-inner">
+    <div>
+      <div class="receipt-label">Total Tagihan</div>
+      <div class="receipt-sub" id="itemCount">0 item dipilih</div>
+    </div>
+    <div class="receipt-total"><span class="cur">$</span><span id="totalValue">0</span></div>
+    <div class="btn-row">
+      <button class="reset-btn" id="resetBtn">Reset</button>
+      <button class="send-btn" id="sendBtn">Kirim</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function fmt(n){ return n.toLocaleString('id-ID'); }
+
+function checkRow(name, price, groupId){
+  const id = groupId + '-' + name.replace(/[^a-z0-9]/gi,'');
+  return `<div class="row">
+    <input type="checkbox" class="calc-item" data-price="${price}" id="${id}">
+    <label for="${id}">${name}</label>
+    <span class="price">$ ${fmt(price)}</span>
+  </div>`;
+}
+
+function radioRow(name, price, groupName, checked){
+  const id = groupName + '-' + name.replace(/[^a-z0-9]/gi,'');
+  return `<div class="row">
+    <input type="radio" class="calc-item" name="${groupName}" data-price="${price}" id="${id}" ${checked ? 'checked' : ''}>
+    <label for="${id}">${name}</label>
+    <span class="price">${price ? '$ ' + fmt(price) : '—'}</span>
+  </div>`;
+}
+
+function qtyRow(name, price, unit){
+  const id = 'qty-' + name.replace(/[^a-z0-9]/gi,'');
+  return `<div class="row qty-row">
+    <label for="${id}">${name}</label>
+    <input type="number" min="0" value="0" data-price="${price}" class="calc-qty" id="${id}">
+    <span class="price">$ ${fmt(price)}${unit ? ' '+unit : ''}</span>
+  </div>`;
+}
+
+function renderList(elId, items, groupId){
+  document.getElementById(elId).innerHTML = items.map(([n,p]) => checkRow(n,p,groupId)).join('');
+}
+function renderRadios(elId, items, groupName){
+  document.getElementById(elId).innerHTML = items.map(([n,p],i) => radioRow(n,p,groupName, i===0)).join('');
+}
+
+// ===== DATA =====
+renderList('sec-paint', [
+  ["Primary",3500],["Secondary",3500],["Pearlescent",3500],
+  ["Interior",3500],["Dashboard",3500],["Chameleon",3500]
+], 'paint');
+
+renderList('sec-bodypart', [
+  ["Spoiler",10000],["Front Bumper",10000],["Rear Bumper",10000],["Roof",10000],
+  ["Side Skirt",10000],["Exhaust",10000],["Frame (Rollcage)",10000],["Grill",10000],
+  ["Hood",10000],["Left Fender",10000],["Engine Block",10000],["Livery",10000],["Trim",10000]
+], 'body');
+
+renderList('sec-tint', [
+  ["Tint 0%",5000],["Tint 10%",5000],["Tint 50%",5000],
+  ["Tint 60%",5000],["Tint 80%",5000],["Tint 100%",5000]
+], 'tint');
+
+renderList('sec-other', [
+  ["Window",10000],["Struts",10000],["Front Vanity Plates",10000],["License Plate Holder",10000],
+  ["License Plate",10000],["Plaque",10000],["Speakers",10000],["Trunk",10000],
+  ["Wings",10000],["Fuel Tank",10000],["Aerials",10000],["Arch Covers",10000],
+  ["Horns",10000],["Hydraulics",10000]
+], 'other');
+
+renderList('sec-interior', [
+  ["Interior",10000],["Ornaments",10000],["Dashboard",10000],["Dial",10000],
+  ["Shifting Leavers",10000],["Door Speaker",10000],["Seats",10000],
+  ["Steering Wheels",10000],["Vehicle Ekstras",10000]
+], 'int');
+
+renderList('sec-neon', [
+  ["Neon All 4 Side",5000],["Neon Color",3000],
+  ["Xenon Pemasangan",5000],["Xenon Color",5000]
+], 'neon');
+
+renderList('sec-wheel', [
+  ["Wheel Color",3500],["Tire Smoke Color",3000],["Wheel Types",30000],
+  ["Tire Enhancements",5000],["Camber (Stancer)",50000],["Spacers (Stancer)",30000]
+], 'wheel');
+
+const PERF_ITEMS = [["Engine",70000],["Brakes",30000],["Transmission",60000],["Armour",60000],["Turbo",30000]];
+renderList('sec-perf-items', PERF_ITEMS, 'perf');
+
+renderRadios('sec-perf-package', [
+  ["Tidak pakai paket",0],
+  ["Paket Rata Kanan (Normal)",250000],
+  ["Paket Rata Kanan (Donasi)",200000]
+], 'perfpackage');
+
+document.getElementById('sec-perf-nos').innerHTML = checkRow("NOS (Air Filter)", 20000, 'nos');
+
+renderRadios('sec-perf-susp', [
+  ["Suspensi: Tidak pakai",0],
+  ["Suspensi Lowered",7500],
+  ["Suspensi Street",10000],
+  ["Suspensi Sports",30000],
+  ["Suspensi Competition",60000]
+], 'susp');
+
+renderRadios('sec-servis', [
+  ["Tidak pakai servis",0],
+  ["Full Servis",2500],
+  ["Servis Only",1500],
+  ["Cuci Only",1000]
+], 'servis');
+
+document.getElementById('sec-part').innerHTML =
+  qtyRow("Ban / Pintu / Kap", 500, '/pcs') +
+  checkRow("Helikopter (servis)", 10000, 'part') +
+  qtyRow("Tool Kit (Engine Only)", 3500, '/pcs') +
+  qtyRow("Cleaning Kit", 1500, '/pcs');
+
+renderRadios('sec-luar', [
+  ["Tidak pakai",0],
+  ["Area Kota",2500],
+  ["Shandy Shore",3500],
+  ["Paleto",4500]
+], 'luar');
+
+renderRadios('sec-towing', [
+  ["Tidak pakai",0],
+  ["Area Kota",2500],
+  ["Shandy Shore",3500],
+  ["Paleto",5000],
+  ["Trek Area Sulit",6000]
+], 'towing');
+
+renderRadios('sec-jerry', [
+  ["Tidak pakai",0],
+  ["Area Kota",1500],
+  ["Shandy Shore",2000],
+  ["Paleto",2500]
+], 'jerry');
+
+document.getElementById('sec-lain').innerHTML = checkRow("Cek Rata Kanan Kendaraan", 500, 'lain');
+
+// ===== PERFORMANCE PACKAGE LOGIC =====
+function updatePackageLock(){
+  const pkgChecked = document.querySelector('input[name="perfpackage"]:checked');
+  const lock = pkgChecked && parseFloat(pkgChecked.dataset.price) > 0;
+  document.querySelectorAll('#sec-perf-items .calc-item').forEach(cb=>{
+    cb.disabled = lock;
+    cb.closest('.row').classList.toggle('disabled', lock);
+    if(lock) cb.checked = false;
+  });
+}
+document.querySelectorAll('input[name="perfpackage"]').forEach(r => r.addEventListener('change', () => { updatePackageLock(); calcTotal(); }));
+
+// ===== STEPPER BUTTONS =====
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.step-btn');
+  if(!btn) return;
+  const stepper = btn.closest('.stepper');
+  const valueEl = stepper.querySelector('.step-value');
+  let qty = parseInt(valueEl.dataset.qty, 10) || 0;
+  if(btn.classList.contains('plus')) qty++;
+  if(btn.classList.contains('minus')) qty = Math.max(0, qty - 1);
+  valueEl.dataset.qty = qty;
+  valueEl.textContent = qty;
+  calcTotal();
+});
+
+// ===== TOTAL CALC =====
+function calcTotal(){
+  let total = 0, count = 0;
+  document.querySelectorAll('.calc-item[type="checkbox"]:checked:not(:disabled)').forEach(el=>{
+    total += parseFloat(el.dataset.price) || 0; count++;
+  });
+  document.querySelectorAll('.calc-item[type="radio"]:checked').forEach(el=>{
+    const p = parseFloat(el.dataset.price) || 0;
+    total += p; if(p>0) count++;
+  });
+  document.querySelectorAll('.calc-qty').forEach(el=>{
+    const qty = parseFloat(el.value) || 0;
+    const p = parseFloat(el.dataset.price) || 0;
+    total += qty * p; if(qty>0) count++;
+  });
+  document.querySelectorAll('.stepper').forEach(el=>{
+    const qty = parseInt(el.querySelector('.step-value').dataset.qty, 10) || 0;
+    const p = parseFloat(el.dataset.price) || 0;
+    total += qty * p; if(qty>0) count++;
+  });
+  document.getElementById('totalValue').textContent = fmt(total);
+  document.getElementById('itemCount').textContent = count + ' item dipilih';
+}
+
+document.addEventListener('change', (e)=>{
+  if(e.target.classList.contains('calc-item') || e.target.classList.contains('calc-qty')){
+    calcTotal();
+  }
+});
+document.addEventListener('input', (e)=>{
+  if(e.target.classList.contains('calc-qty')) calcTotal();
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('.calc-item[type="checkbox"]').forEach(el=> el.checked=false);
+  document.querySelectorAll('.calc-qty').forEach(el=> el.value=0);
+  document.querySelectorAll('.step-value').forEach(el=>{ el.dataset.qty=0; el.textContent='0'; });
+  document.getElementById('custName').value = '';
+  document.getElementById('custInstansi').value = '';
+  document.getElementById('custNote').value = '';
+  // simplest reliable reset: check the first radio in each group (the "Tidak pakai" option)
+  const groups = {};
+  document.querySelectorAll('input[type="radio"]').forEach(r=>{ groups[r.name] = groups[r.name] || r; });
+  Object.values(groups).forEach(first => first.checked = true);
+  updatePackageLock();
+  calcTotal();
+});
+
+updatePackageLock();
+calcTotal();
+
+// ===== UPLOAD GAMBAR =====
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1453761020895170592/rEkqBJ_c8yHZj3dcR_02GJXZwrlHWkgLyccy1JFXZTLi2PZoqCJRto9TcI5C29nQ2h_j";
+let uploadedFiles = [];
+
+function renderThumbs(){
+  const grid = document.getElementById('thumbGrid');
+  grid.innerHTML = uploadedFiles.map((f, i) => `
+    <div class="thumb-item">
+      <img src="${f.url}" alt="${f.file.name}">
+      <div class="thumb-remove" data-idx="${i}">×</div>
+    </div>
+  `).join('');
+  document.getElementById('thumbCount').textContent =
+    uploadedFiles.length ? uploadedFiles.length + ' gambar dipilih' : 'Belum ada gambar dipilih';
+}
+
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  Array.from(e.target.files).forEach(file=>{
+    uploadedFiles.push({ file, url: URL.createObjectURL(file) });
+  });
+  e.target.value = ""; // reset supaya bisa pilih file yang sama lagi / nambah lagi
+  renderThumbs();
+});
+
+document.getElementById('thumbGrid').addEventListener('click', (e)=>{
+  const rm = e.target.closest('.thumb-remove');
+  if(!rm) return;
+  const idx = parseInt(rm.dataset.idx, 10);
+  URL.revokeObjectURL(uploadedFiles[idx].url);
+  uploadedFiles.splice(idx, 1);
+  renderThumbs();
+});
+
+// ===== KUMPULKAN RINCIAN ITEM TERPILIH =====
+function collectSelectedItems(){
+  const lines = [];
+
+  document.querySelectorAll('.calc-item[type="checkbox"]:checked:not(:disabled)').forEach(el=>{
+    const lbl = el.nextElementSibling;
+    const name = lbl && lbl.tagName === 'LABEL' ? lbl.textContent : '';
+    lines.push(`${name} — $ ${fmt(parseFloat(el.dataset.price)||0)}`);
+  });
+
+  document.querySelectorAll('.calc-item[type="radio"]:checked').forEach(el=>{
+    const price = parseFloat(el.dataset.price) || 0;
+    if(price <= 0) return;
+    const lbl = el.nextElementSibling;
+    const name = lbl && lbl.tagName === 'LABEL' ? lbl.textContent : '';
+    lines.push(`${name} — $ ${fmt(price)}`);
+  });
+
+  document.querySelectorAll('.calc-qty').forEach(el=>{
+    const qty = parseFloat(el.value) || 0;
+    if(qty <= 0) return;
+    const price = parseFloat(el.dataset.price) || 0;
+    const lbl = el.previousElementSibling;
+    const name = lbl && lbl.tagName === 'LABEL' ? lbl.textContent : '';
+    lines.push(`${name} x${qty} — $ ${fmt(qty*price)}`);
+  });
+
+  return lines;
+}
+
+// ===== KIRIM KE DISCORD =====
+document.getElementById('sendBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('sendBtn');
+  const status = document.getElementById('sendStatus');
+  const items = collectSelectedItems();
+
+  const custNameCheck = document.getElementById('custName').value.trim();
+  if(!custNameCheck){
+    status.textContent = "Nama customer wajib diisi.";
+    status.className = "send-status err";
+    document.getElementById('custName').focus();
+    return;
+  }
+
+  if(items.length === 0 && uploadedFiles.length === 0){
+    status.textContent = "Belum ada item / gambar untuk dikirim.";
+    status.className = "send-status err";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Mengirim...";
+  status.textContent = "";
+  status.className = "send-status";
+
+  const totalNow = document.getElementById('totalValue').textContent;
+  let detail = items.join('\n');
+  if(detail.length > 1000) detail = detail.slice(0, 1000) + '\n… (dipotong)';
+  if(!detail) detail = '— tidak ada item —';
+
+  const payload = {
+    embeds: [{
+      title: "🧾 Nota — Elite Custom Garage",
+      color: 0xff7a1a,
+      fields: [],
+      timestamp: new Date().toISOString()
+    }]
+  };
+
+  const custName = document.getElementById('custName').value.trim();
+  const custInstansi = document.getElementById('custInstansi').value.trim();
+  if(custName) payload.embeds[0].fields.push({ name: "Nama Customer", value: custName, inline: true });
+  if(custInstansi) payload.embeds[0].fields.push({ name: "Instansi", value: custInstansi, inline: true });
+
+  payload.embeds[0].fields.push(
+    { name: "Total Tagihan", value: `$ ${totalNow}`, inline: true },
+    { name: "Jumlah Item", value: `${items.length}`, inline: true },
+    { name: "Rincian", value: detail }
+  );
+
+  const custNote = document.getElementById('custNote').value.trim();
+  if(custNote) payload.embeds[0].fields.push({ name: "Catatan Tambahan", value: custNote.slice(0, 1000) });
+
+
+  const formData = new FormData();
+  const filesToSend = uploadedFiles.slice(0, 9); // batas embed gambar Discord (maks 10 embed/pesan)
+  filesToSend.forEach((f, i)=>{
+    const extMatch = f.file.name.match(/\.[a-zA-Z0-9]+$/);
+    const ext = extMatch ? extMatch[0] : '.png';
+    const filename = `img${i}${ext}`;
+    formData.append(`files[${i}]`, f.file, filename);
+    payload.embeds.push({ image: { url: `attachment://${filename}` } });
+  });
+  formData.append('payload_json', JSON.stringify(payload));
+
+  try{
+    const res = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+    if(res.ok || res.status === 204){
+      status.textContent = "Nota berhasil dikirim ✓";
+      status.className = "send-status ok";
+      uploadedFiles.forEach(f => URL.revokeObjectURL(f.url));
+      uploadedFiles = [];
+      renderThumbs();
+      document.getElementById('custName').value = '';
+      document.getElementById('custInstansi').value = '';
+      document.getElementById('custNote').value = '';
+    } else {
+      status.textContent = `Gagal mengirim (status ${res.status})`;
+      status.className = "send-status err";
+    }
+  }catch(err){
+    status.textContent = "Gagal mengirim — cek koneksi.";
+    status.className = "send-status err";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Kirim";
+  }
+});
+</script>
+
+</body>
+</html>
